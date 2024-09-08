@@ -1,8 +1,9 @@
 const canvas = document.getElementById('thisCan')
+const scoreEl = document.getElementById('scoreEl')
 const c = canvas.getContext('2d')
 
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
+canvas.width = 1024             //window.innerWidth
+canvas.height = 576             //window.innerHeight
 
 class Player {
     constructor() {
@@ -11,6 +12,7 @@ class Player {
             y: 0
         }
         this.rotation = 0
+        this.opacity = 1
         const image = new Image()
         image.src = './img/spaceship.png'
         image.onload = () => {
@@ -30,6 +32,7 @@ class Player {
         c.fillRect(this.position.x, this.position.y, this.width, this.height) */
 
         c.save()
+        c.globalAlpha = this.opacity
         c.translate(player.position.x + player.width / 2, player.position.y + player.height / 2)
         c.rotate(this.rotation)
         c.translate(-player.position.x - player.width / 2, -player.position.y - player.height / 2)
@@ -223,6 +226,11 @@ const keys = {
 
 let frames = 0
 let randomInterval = Math.floor(Math.random() * 500) + 500
+let game = {
+    over: false,
+    active: true
+}
+let score = 0
 
 //instantiate Fast stars
 for (let i = 0; i < 33; i++) {
@@ -290,6 +298,9 @@ function createParticles({ object, color, fades }) {
     }
 }
 function animate() {
+    if (!game.active) {
+        return
+    }
     window.requestAnimationFrame(animate)
     c.fillStyle = 'black'
     c.fillRect(0, 0, canvas.width, canvas.height)
@@ -325,7 +336,14 @@ function animate() {
 
             setTimeout(() => {
                 invaderProjectiles.splice(ip, 1)
+                player.opacity = 0
+                game.over = true
             }, 0)
+
+            setTimeout(() => {
+                game.active = false
+            }, 2000)
+
             console.log('you lose')
             createParticles({
                 object: player,
@@ -372,6 +390,8 @@ function animate() {
                             return projectile2 === projectile
                         })
                         if (invaderFound && projectileFound) {
+                            score += 100
+                            scoreEl.innerHTML = score
                             grid.invaders.splice(i, 1)
                             projectiles.splice(j, 1)
 
@@ -423,6 +443,10 @@ animate()
 
 
 window.addEventListener('keydown', ({ key }) => {
+    if (game.over) {
+        return
+    }
+    
     switch (key) {
         case 'a':
             keys.a.pressed = true
