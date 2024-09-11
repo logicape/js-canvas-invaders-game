@@ -124,13 +124,32 @@ class InvaderProjectile {
 }
 
 class Invader {
-    constructor({ position }) {
+    constructor({ position, type }) {
         this.velocity = {
             x: 0,
             y: 0
         }
+        this.type = type
+        this.color
+        this.value
         const image = new Image()
-        image.src = './img/invader.png'
+        switch (this.type) {
+            case 1:
+                image.src = './img/invader.png'
+                this.color = colors.purple
+                this.value = 100
+                break
+            case 2:
+                image.src = './img/invader2.png'
+                this.color = colors.green
+                this.value = 200
+                break
+            case 3:
+                image.src = './img/invader3.png'
+                this.color = colors.yellow
+                this.value = 300
+                break
+        }
         image.onload = () => {
             const scale = 1
             this.image = image
@@ -178,17 +197,19 @@ class Grid {
             y: 0
         }
         this.velocity = {
-            x: 3,
+            x: 1,
             y: 0
         }
         this.invaders = []
 
-        const columns = Math.floor(Math.random() * 10 + 5)
-        const rows = Math.floor(Math.random() * 5 + 2)
+        let type = 1 + Math.floor(Math.random() * 3)            //for now...
+
+        const columns = Math.floor(Math.random() * 8 + 6)
+        const rows = Math.floor(Math.random() * 2 + 1) * 2      //2 || 4  
         this.width = columns * 30
         for (let x = 0; x < columns; x++) {
             for (let y = 0; y < rows; y++) {
-                this.invaders.push(new Invader({ position: { x: x * 30, y: y * 30 } }))
+                this.invaders.push(new Invader({ position: { x: x * 30, y: y * 30 }, type }))
             }
         }
     }
@@ -202,15 +223,42 @@ class Grid {
             this.velocity.y = 30
         }
     }
-
-
 }
+
+class Score {
+    constructor({ position, color, fades, scoreVal }) {
+        this.position = position
+        this.color = color
+        this.opacity = 1
+        this.fades = fades
+        this.scoreVal = scoreVal
+    }
+
+    draw() {
+        c.save()
+        c.globalAlpha = this.opacity
+        c.font = "20px san-serif"
+        c.fillStyle = this.color
+        c.fillText(this.scoreVal, this.position.x, this.position.y)  // ,30)
+        c.restore()
+    }
+
+    update() {
+        this.draw()
+        this.position.y -= .5
+        if (this.fades) {
+            this.opacity -= 0.0066
+        }
+    }
+}
+
 
 const player = new Player()
 const projectiles = []
 const grids = []
 const invaderProjectiles = []
 const particles = []
+const scores = []
 
 const keys = {
     a: {
@@ -224,8 +272,14 @@ const keys = {
     }
 }
 
+const colors = {
+    purple: "#9474c3",
+    green: "#6ab983",
+    yellow: "#bcaf6d"
+}
+
 let frames = 0
-let randomInterval = Math.floor(Math.random() * 500) + 500
+let randomInterval = Math.floor(Math.random() * 500) + 1000
 let game = {
     over: false,
     active: true
@@ -233,23 +287,7 @@ let game = {
 let score = 0
 
 //instantiate Fast stars
-for (let i = 0; i < 33; i++) {
-    particles.push(new Particle({
-        position: {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height
-        },
-        velocity: {
-            x: 0,
-            y: 0.3
-        },
-        radius: Math.random() * 3,
-        color: 'white'
-    }))
-}
-
-//instantiate Slow stars
-for (let i = 0; i < 33; i++) {
+for (let i = 0; i < 10; i++) {
     particles.push(new Particle({
         position: {
             x: Math.random() * canvas.width,
@@ -259,13 +297,29 @@ for (let i = 0; i < 33; i++) {
             x: 0,
             y: 0.2
         },
-        radius: Math.random() * 2,
+        radius: Math.random() * 3,
         color: 'white'
     }))
 }
 
+//instantiate Slow stars
+for (let i = 0; i < 30; i++) {
+    particles.push(new Particle({
+        position: {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height
+        },
+        velocity: {
+            x: 0,
+            y: 0.15
+        },
+        radius: Math.random() * 2,
+        color: 'lightgray'
+    }))
+}
+
 //instantiate Snail stars
-for (let i = 0; i < 33; i++) {
+for (let i = 0; i < 50; i++) {
     particles.push(new Particle({
         position: {
             x: Math.random() * canvas.width,
@@ -275,8 +329,8 @@ for (let i = 0; i < 33; i++) {
             x: 0,
             y: 0.1
         },
-        radius: Math.random() * 1,
-        color: 'white'
+        radius: Math.random() * 2,
+        color: 'slategrey'
     }))
 }
 
@@ -297,6 +351,21 @@ function createParticles({ object, color, fades }) {
         }))
     }
 }
+
+function floatScore({ object, color, fades, scoreVal }) {
+
+    scores.push(new Score({
+        position: {
+            x: object.position.x,
+            y: object.position.y + object.height
+        },
+        color: color || 'white',
+        fades: fades,
+        scoreVal: scoreVal
+    }))
+
+}
+
 function animate() {
     if (!game.active) {
         return
@@ -306,10 +375,10 @@ function animate() {
     c.fillRect(0, 0, canvas.width, canvas.height)
     player.update()
     particles.forEach((particle, pindex) => {
-    if (particle.position.y - particle.radius >= canvas.height) {
-        particle.position.x = Math.random() * canvas.width
-        particle.position.y = -particle.radius
-    }
+        if (particle.position.y - particle.radius >= canvas.height) {
+            particle.position.x = Math.random() * canvas.width
+            particle.position.y = -particle.radius
+        }
 
         if (particle.opacity <= 0) {
             setTimeout(() => {
@@ -317,6 +386,15 @@ function animate() {
             }, 0)
         } else {
             particle.update()
+        }
+    })
+    scores.forEach((score, sindex) => {
+        if (score.opacity <= 0) {
+            setTimeout(() => {
+                scores.splice(sindex, 1)
+            }, 0)
+        } else {
+            score.update()
         }
     })
 
@@ -334,7 +412,7 @@ function animate() {
             invaderProjectile.position.x + invaderProjectile.width >= player.position.x &&
             invaderProjectile.position.x <= player.position.x + player.width) {
 
-            setTimeout(() => {
+            /* setTimeout(() => {
                 invaderProjectiles.splice(ip, 1)
                 player.opacity = 0
                 game.over = true
@@ -342,7 +420,7 @@ function animate() {
 
             setTimeout(() => {
                 game.active = false
-            }, 2000)
+            }, 2000) */
 
             console.log('you lose')
             createParticles({
@@ -390,14 +468,21 @@ function animate() {
                             return projectile2 === projectile
                         })
                         if (invaderFound && projectileFound) {
-                            score += 100
+                            floatScore({
+                                object: invader,
+                                color: invader.color,
+                                fades: true,
+                                scoreVal: invader.value
+                            })
+                            score += invader.value
                             scoreEl.innerHTML = score
                             grid.invaders.splice(i, 1)
                             projectiles.splice(j, 1)
 
                             createParticles({
                                 object: invader,
-                                fades: true
+                                fades: true,
+                                color: invader.color
                             })
 
                             if (grid.invaders.length > 0) {
@@ -446,7 +531,7 @@ window.addEventListener('keydown', ({ key }) => {
     if (game.over) {
         return
     }
-    
+
     switch (key) {
         case 'a':
             keys.a.pressed = true
