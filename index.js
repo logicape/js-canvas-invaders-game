@@ -446,7 +446,7 @@ function animate() {
     grids.forEach((grid, gridIndex) => {
         grid.update()
         //spawn enemy projectilies
-        if (frames % 100 === 0 && grid.invaders.length > 0) {
+        if (frames % 250 === 0 && grid.invaders.length > 0) {
             grid.invaders[Math.floor(Math.random() * grid.invaders.length)].shoot(invaderProjectiles)
         }
         grid.invaders.forEach((invader, i) => {
